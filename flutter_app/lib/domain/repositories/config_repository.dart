@@ -1,5 +1,3 @@
-// ConfigRepository 인터페이스
-
 import '../entities/app_config.dart';
 
 abstract class ConfigRepository {
