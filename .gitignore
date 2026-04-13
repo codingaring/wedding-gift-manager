@@ -1,0 +1,18 @@
+# IDE
+.cursor/
+.idea/
+.vscode/
+
+# Claude / bkit
+.bkit/
+.claude/
+CLAUDE.md
+docs/
+
+# Flutter
+flutter_app/build/
+flutter_app/.dart_tool/
+
+# OS
+Thumbs.db
+.DS_Store
