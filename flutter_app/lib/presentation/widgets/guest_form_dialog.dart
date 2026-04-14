@@ -41,6 +41,7 @@ class _GuestFormDialogState extends State<_GuestFormDialog> {
   late final TextEditingController _memoController;
   late final TextEditingController _customRelationController;
   GuestRelation? _selectedRelation;
+  int _mealTickets = 0;
   final _formKey = GlobalKey<FormState>();
   final _nameFocus = FocusNode();
 
@@ -54,6 +55,7 @@ class _GuestFormDialogState extends State<_GuestFormDialog> {
     );
     _memoController = TextEditingController(text: g?.memo ?? '');
     _customRelationController = TextEditingController();
+    _mealTickets = g?.mealTickets ?? 0;
 
     if (g?.relation != null) {
       _selectedRelation = GuestRelation.values
@@ -205,6 +207,34 @@ class _GuestFormDialogState extends State<_GuestFormDialog> {
                 ],
                 const SizedBox(height: 16),
 
+                // 식권
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '식권 수령',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        for (final n in [0, 1, 2, 3, 4, 5])
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: _MealTicketChip(
+                              count: n,
+                              isSelected: _mealTickets == n,
+                              onTap: () => setState(() => _mealTickets = n),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
                 // 메모
                 TextFormField(
                   controller: _memoController,
@@ -279,6 +309,7 @@ class _GuestFormDialogState extends State<_GuestFormDialog> {
         name: _nameController.text.trim(),
         relation: relation,
         amount: amount,
+        mealTickets: _mealTickets,
         memo: memo,
       );
       Navigator.pop(context, updated);
@@ -287,6 +318,7 @@ class _GuestFormDialogState extends State<_GuestFormDialog> {
         'name': _nameController.text.trim(),
         'relation': relation,
         'amount': amount,
+        'mealTickets': _mealTickets,
         'memo': memo,
       });
     }
@@ -307,6 +339,42 @@ class _AmountChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = '${amount ~/ 10000}만원';
+    return Material(
+      color: isSelected ? const Color(0xFF2C2C2C) : const Color(0xFFF5F5F5),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? Colors.white : const Color(0xFF444444),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MealTicketChip extends StatelessWidget {
+  final int count;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _MealTicketChip({
+    required this.count,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count == 0 ? '없음' : '$count장';
     return Material(
       color: isSelected ? const Color(0xFF2C2C2C) : const Color(0xFFF5F5F5),
       borderRadius: BorderRadius.circular(8),

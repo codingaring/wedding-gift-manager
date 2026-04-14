@@ -10,6 +10,8 @@ class Guests extends Table {
   IntColumn get amount => integer().withDefault(const Constant(0))();
   TextColumn get paymentMethod =>
       text().withDefault(const Constant('cash'))(); // 'cash' | 'transfer'
+  IntColumn get mealTickets =>
+      integer().withDefault(const Constant(0))(); // 식권 수령 개수 (0~5)
   TextColumn get memo => text().nullable()();
   DateTimeColumn get createdAt =>
       dateTime().withDefault(currentDateAndTime)();

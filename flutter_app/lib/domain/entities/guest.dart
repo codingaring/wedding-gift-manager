@@ -7,6 +7,7 @@ class Guest {
   final String side;
   final int amount;
   final String paymentMethod; // 'cash' | 'transfer'
+  final int mealTickets;      // 식권 수령 개수 (0~5)
   final String? memo;
   final DateTime createdAt;
   final DateTime? syncedAt;
@@ -20,6 +21,7 @@ class Guest {
     required this.side,
     this.amount = 0,
     this.paymentMethod = 'cash',
+    this.mealTickets = 0,
     this.memo,
     required this.createdAt,
     this.syncedAt,
@@ -34,6 +36,7 @@ class Guest {
     String? side,
     int? amount,
     String? paymentMethod,
+    int? mealTickets,
     String? memo,
     DateTime? createdAt,
     DateTime? syncedAt,
@@ -47,6 +50,7 @@ class Guest {
       side: side ?? this.side,
       amount: amount ?? this.amount,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      mealTickets: mealTickets ?? this.mealTickets,
       memo: memo ?? this.memo,
       createdAt: createdAt ?? this.createdAt,
       syncedAt: syncedAt ?? this.syncedAt,

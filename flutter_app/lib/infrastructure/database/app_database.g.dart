@@ -95,6 +95,18 @@ class $GuestsTable extends Guests with TableInfo<$GuestsTable, Guest> {
     requiredDuringInsert: false,
     defaultValue: const Constant('cash'),
   );
+  static const VerificationMeta _mealTicketsMeta = const VerificationMeta(
+    'mealTickets',
+  );
+  @override
+  late final GeneratedColumn<int> mealTickets = GeneratedColumn<int>(
+    'meal_tickets',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _memoMeta = const VerificationMeta('memo');
   @override
   late final GeneratedColumn<String> memo = GeneratedColumn<String>(
@@ -137,6 +149,7 @@ class $GuestsTable extends Guests with TableInfo<$GuestsTable, Guest> {
     side,
     amount,
     paymentMethod,
+    mealTickets,
     memo,
     createdAt,
     syncedAt,
@@ -209,6 +222,15 @@ class $GuestsTable extends Guests with TableInfo<$GuestsTable, Guest> {
         ),
       );
     }
+    if (data.containsKey('meal_tickets')) {
+      context.handle(
+        _mealTicketsMeta,
+        mealTickets.isAcceptableOrUnknown(
+          data['meal_tickets']!,
+          _mealTicketsMeta,
+        ),
+      );
+    }
     if (data.containsKey('memo')) {
       context.handle(
         _memoMeta,
@@ -272,6 +294,10 @@ class $GuestsTable extends Guests with TableInfo<$GuestsTable, Guest> {
         DriftSqlType.string,
         data['${effectivePrefix}payment_method'],
       )!,
+      mealTickets: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}meal_tickets'],
+      )!,
       memo: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}memo'],
@@ -302,6 +328,7 @@ class Guest extends DataClass implements Insertable<Guest> {
   final String side;
   final int amount;
   final String paymentMethod;
+  final int mealTickets;
   final String? memo;
   final DateTime createdAt;
   final DateTime? syncedAt;
@@ -314,6 +341,7 @@ class Guest extends DataClass implements Insertable<Guest> {
     required this.side,
     required this.amount,
     required this.paymentMethod,
+    required this.mealTickets,
     this.memo,
     required this.createdAt,
     this.syncedAt,
@@ -331,6 +359,7 @@ class Guest extends DataClass implements Insertable<Guest> {
     map['side'] = Variable<String>(side);
     map['amount'] = Variable<int>(amount);
     map['payment_method'] = Variable<String>(paymentMethod);
+    map['meal_tickets'] = Variable<int>(mealTickets);
     if (!nullToAbsent || memo != null) {
       map['memo'] = Variable<String>(memo);
     }
@@ -353,6 +382,7 @@ class Guest extends DataClass implements Insertable<Guest> {
       side: Value(side),
       amount: Value(amount),
       paymentMethod: Value(paymentMethod),
+      mealTickets: Value(mealTickets),
       memo: memo == null && nullToAbsent ? const Value.absent() : Value(memo),
       createdAt: Value(createdAt),
       syncedAt: syncedAt == null && nullToAbsent
@@ -375,6 +405,7 @@ class Guest extends DataClass implements Insertable<Guest> {
       side: serializer.fromJson<String>(json['side']),
       amount: serializer.fromJson<int>(json['amount']),
       paymentMethod: serializer.fromJson<String>(json['paymentMethod']),
+      mealTickets: serializer.fromJson<int>(json['mealTickets']),
       memo: serializer.fromJson<String?>(json['memo']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
@@ -392,6 +423,7 @@ class Guest extends DataClass implements Insertable<Guest> {
       'side': serializer.toJson<String>(side),
       'amount': serializer.toJson<int>(amount),
       'paymentMethod': serializer.toJson<String>(paymentMethod),
+      'mealTickets': serializer.toJson<int>(mealTickets),
       'memo': serializer.toJson<String?>(memo),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'syncedAt': serializer.toJson<DateTime?>(syncedAt),
@@ -407,6 +439,7 @@ class Guest extends DataClass implements Insertable<Guest> {
     String? side,
     int? amount,
     String? paymentMethod,
+    int? mealTickets,
     Value<String?> memo = const Value.absent(),
     DateTime? createdAt,
     Value<DateTime?> syncedAt = const Value.absent(),
@@ -419,6 +452,7 @@ class Guest extends DataClass implements Insertable<Guest> {
     side: side ?? this.side,
     amount: amount ?? this.amount,
     paymentMethod: paymentMethod ?? this.paymentMethod,
+    mealTickets: mealTickets ?? this.mealTickets,
     memo: memo.present ? memo.value : this.memo,
     createdAt: createdAt ?? this.createdAt,
     syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
@@ -435,6 +469,9 @@ class Guest extends DataClass implements Insertable<Guest> {
       paymentMethod: data.paymentMethod.present
           ? data.paymentMethod.value
           : this.paymentMethod,
+      mealTickets: data.mealTickets.present
+          ? data.mealTickets.value
+          : this.mealTickets,
       memo: data.memo.present ? data.memo.value : this.memo,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
@@ -452,6 +489,7 @@ class Guest extends DataClass implements Insertable<Guest> {
           ..write('side: $side, ')
           ..write('amount: $amount, ')
           ..write('paymentMethod: $paymentMethod, ')
+          ..write('mealTickets: $mealTickets, ')
           ..write('memo: $memo, ')
           ..write('createdAt: $createdAt, ')
           ..write('syncedAt: $syncedAt')
@@ -469,6 +507,7 @@ class Guest extends DataClass implements Insertable<Guest> {
     side,
     amount,
     paymentMethod,
+    mealTickets,
     memo,
     createdAt,
     syncedAt,
@@ -485,6 +524,7 @@ class Guest extends DataClass implements Insertable<Guest> {
           other.side == this.side &&
           other.amount == this.amount &&
           other.paymentMethod == this.paymentMethod &&
+          other.mealTickets == this.mealTickets &&
           other.memo == this.memo &&
           other.createdAt == this.createdAt &&
           other.syncedAt == this.syncedAt);
@@ -499,6 +539,7 @@ class GuestsCompanion extends UpdateCompanion<Guest> {
   final Value<String> side;
   final Value<int> amount;
   final Value<String> paymentMethod;
+  final Value<int> mealTickets;
   final Value<String?> memo;
   final Value<DateTime> createdAt;
   final Value<DateTime?> syncedAt;
@@ -511,6 +552,7 @@ class GuestsCompanion extends UpdateCompanion<Guest> {
     this.side = const Value.absent(),
     this.amount = const Value.absent(),
     this.paymentMethod = const Value.absent(),
+    this.mealTickets = const Value.absent(),
     this.memo = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.syncedAt = const Value.absent(),
@@ -524,6 +566,7 @@ class GuestsCompanion extends UpdateCompanion<Guest> {
     required String side,
     this.amount = const Value.absent(),
     this.paymentMethod = const Value.absent(),
+    this.mealTickets = const Value.absent(),
     this.memo = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.syncedAt = const Value.absent(),
@@ -540,6 +583,7 @@ class GuestsCompanion extends UpdateCompanion<Guest> {
     Expression<String>? side,
     Expression<int>? amount,
     Expression<String>? paymentMethod,
+    Expression<int>? mealTickets,
     Expression<String>? memo,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? syncedAt,
@@ -553,6 +597,7 @@ class GuestsCompanion extends UpdateCompanion<Guest> {
       if (side != null) 'side': side,
       if (amount != null) 'amount': amount,
       if (paymentMethod != null) 'payment_method': paymentMethod,
+      if (mealTickets != null) 'meal_tickets': mealTickets,
       if (memo != null) 'memo': memo,
       if (createdAt != null) 'created_at': createdAt,
       if (syncedAt != null) 'synced_at': syncedAt,
@@ -568,6 +613,7 @@ class GuestsCompanion extends UpdateCompanion<Guest> {
     Value<String>? side,
     Value<int>? amount,
     Value<String>? paymentMethod,
+    Value<int>? mealTickets,
     Value<String?>? memo,
     Value<DateTime>? createdAt,
     Value<DateTime?>? syncedAt,
@@ -581,6 +627,7 @@ class GuestsCompanion extends UpdateCompanion<Guest> {
       side: side ?? this.side,
       amount: amount ?? this.amount,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      mealTickets: mealTickets ?? this.mealTickets,
       memo: memo ?? this.memo,
       createdAt: createdAt ?? this.createdAt,
       syncedAt: syncedAt ?? this.syncedAt,
@@ -614,6 +661,9 @@ class GuestsCompanion extends UpdateCompanion<Guest> {
     if (paymentMethod.present) {
       map['payment_method'] = Variable<String>(paymentMethod.value);
     }
+    if (mealTickets.present) {
+      map['meal_tickets'] = Variable<int>(mealTickets.value);
+    }
     if (memo.present) {
       map['memo'] = Variable<String>(memo.value);
     }
@@ -637,6 +687,7 @@ class GuestsCompanion extends UpdateCompanion<Guest> {
           ..write('side: $side, ')
           ..write('amount: $amount, ')
           ..write('paymentMethod: $paymentMethod, ')
+          ..write('mealTickets: $mealTickets, ')
           ..write('memo: $memo, ')
           ..write('createdAt: $createdAt, ')
           ..write('syncedAt: $syncedAt')
@@ -975,6 +1026,7 @@ typedef $$GuestsTableCreateCompanionBuilder =
       required String side,
       Value<int> amount,
       Value<String> paymentMethod,
+      Value<int> mealTickets,
       Value<String?> memo,
       Value<DateTime> createdAt,
       Value<DateTime?> syncedAt,
@@ -989,6 +1041,7 @@ typedef $$GuestsTableUpdateCompanionBuilder =
       Value<String> side,
       Value<int> amount,
       Value<String> paymentMethod,
+      Value<int> mealTickets,
       Value<String?> memo,
       Value<DateTime> createdAt,
       Value<DateTime?> syncedAt,
@@ -1040,6 +1093,11 @@ class $$GuestsTableFilterComposer
 
   ColumnFilters<String> get paymentMethod => $composableBuilder(
     column: $table.paymentMethod,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get mealTickets => $composableBuilder(
+    column: $table.mealTickets,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1108,6 +1166,11 @@ class $$GuestsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get mealTickets => $composableBuilder(
+    column: $table.mealTickets,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get memo => $composableBuilder(
     column: $table.memo,
     builder: (column) => ColumnOrderings(column),
@@ -1159,6 +1222,11 @@ class $$GuestsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get mealTickets => $composableBuilder(
+    column: $table.mealTickets,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get memo =>
       $composableBuilder(column: $table.memo, builder: (column) => column);
 
@@ -1205,6 +1273,7 @@ class $$GuestsTableTableManager
                 Value<String> side = const Value.absent(),
                 Value<int> amount = const Value.absent(),
                 Value<String> paymentMethod = const Value.absent(),
+                Value<int> mealTickets = const Value.absent(),
                 Value<String?> memo = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime?> syncedAt = const Value.absent(),
@@ -1217,6 +1286,7 @@ class $$GuestsTableTableManager
                 side: side,
                 amount: amount,
                 paymentMethod: paymentMethod,
+                mealTickets: mealTickets,
                 memo: memo,
                 createdAt: createdAt,
                 syncedAt: syncedAt,
@@ -1231,6 +1301,7 @@ class $$GuestsTableTableManager
                 required String side,
                 Value<int> amount = const Value.absent(),
                 Value<String> paymentMethod = const Value.absent(),
+                Value<int> mealTickets = const Value.absent(),
                 Value<String?> memo = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime?> syncedAt = const Value.absent(),
@@ -1243,6 +1314,7 @@ class $$GuestsTableTableManager
                 side: side,
                 amount: amount,
                 paymentMethod: paymentMethod,
+                mealTickets: mealTickets,
                 memo: memo,
                 createdAt: createdAt,
                 syncedAt: syncedAt,

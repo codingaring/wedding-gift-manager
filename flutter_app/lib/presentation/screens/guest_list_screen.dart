@@ -223,6 +223,7 @@ class _GuestListScreenState extends ConsumerState<GuestListScreen>
       side: currentSide,
       amount: amount,
       paymentMethod: 'cash',
+      mealTickets: result['mealTickets'] as int? ?? 0,
       memo: result['memo'] as String?,
       createdAt: DateTime.now(),
     );

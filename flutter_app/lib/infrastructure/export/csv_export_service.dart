@@ -11,7 +11,7 @@ class CsvExportService {
 
   CsvExportService(this._db);
 
-  static const _header = 'name,relation,side,amount,paymentMethod,memo,date';
+  static const _header = 'name,relation,side,amount,paymentMethod,mealTickets,memo,date';
 
   /// 전체 수납 데이터를 CSV 파일로 내보내기
   /// [savePath] 사용자가 선택한 저장 경로
@@ -24,6 +24,7 @@ class CsvExportService {
           g.side,
           g.amount.toString(),
           g.paymentMethod,
+          g.mealTickets.toString(),
           _escape(g.memo ?? ''),
           g.createdAt.toIso8601String(),
         ].join(','));

@@ -23,6 +23,7 @@ class GuestRepositoryImpl implements GuestRepository {
             side: guest.side,
             amount: Value(guest.amount),
             paymentMethod: Value(guest.paymentMethod),
+            mealTickets: Value(guest.mealTickets),
             memo: Value(guest.memo),
           ),
         );
@@ -48,6 +49,7 @@ class GuestRepositoryImpl implements GuestRepository {
         relation: Value(guest.relation),
         amount: Value(guest.amount),
         paymentMethod: Value(guest.paymentMethod),
+        mealTickets: Value(guest.mealTickets),
         memo: Value(guest.memo),
       ),
     );
@@ -114,6 +116,7 @@ class GuestRepositoryImpl implements GuestRepository {
       side: row.side,
       amount: row.amount,
       paymentMethod: row.paymentMethod,
+      mealTickets: row.mealTickets,
       memo: row.memo,
       createdAt: row.createdAt,
       syncedAt: row.syncedAt,
