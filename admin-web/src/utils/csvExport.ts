@@ -1,6 +1,6 @@
 import type { Guest } from "../types/guest";
 
-const HEADER = "name,relation,side,amount,paymentMethod,memo,date";
+const HEADER = "name,relation,side,amount,paymentMethod,mealTickets,memo,date";
 
 function escape(value: string): string {
   if (value.includes(",") || value.includes('"') || value.includes("\n")) {
@@ -17,6 +17,7 @@ export function guestsToCsv(guests: Guest[]): string {
       g.side,
       g.amount.toString(),
       g.paymentMethod,
+      g.mealTickets.toString(),
       escape(g.memo),
       g.date,
     ].join(","),

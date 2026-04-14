@@ -28,6 +28,9 @@ export default function GuestFormModal({
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "transfer">(
     guest?.paymentMethod ?? "cash",
   );
+  const [mealTickets, setMealTickets] = useState(
+    guest?.mealTickets?.toString() ?? "0",
+  );
   const [memo, setMemo] = useState(guest?.memo ?? "");
   const [nameError, setNameError] = useState("");
 
@@ -52,6 +55,7 @@ export default function GuestFormModal({
       side,
       amount: parseInt(amount, 10) || 0,
       paymentMethod,
+      mealTickets: parseInt(mealTickets, 10) || 0,
       memo: memo.trim(),
       date: guest?.date ?? new Date().toISOString(),
     };
@@ -194,6 +198,41 @@ export default function GuestFormModal({
                   {m === "cash" ? "현금" : "계좌이체"}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Meal Tickets */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              식권 수령
+            </label>
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1.5">
+                {[0, 1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setMealTickets(n.toString())}
+                    className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
+                      parseInt(mealTickets) === n
+                        ? "bg-gray-900 border-gray-900 text-white"
+                        : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    {n === 0 ? "없음" : `${n}장`}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={mealTickets}
+                onChange={(e) =>
+                  setMealTickets(e.target.value.replace(/\D/g, ""))
+                }
+                className="w-16 px-2 py-1 text-sm text-center border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-500">장</span>
             </div>
           </div>
 

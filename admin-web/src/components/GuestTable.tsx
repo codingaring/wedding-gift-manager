@@ -71,6 +71,14 @@ export default function GuestTable({ onEdit }: GuestTableProps) {
         cell: (info) => METHOD_LABEL[info.getValue()],
         enableSorting: false,
       }),
+      col.accessor("mealTickets", {
+        header: "식권",
+        cell: (info) => {
+          const v = info.getValue();
+          return v > 0 ? `${v}장` : "-";
+        },
+        enableSorting: false,
+      }),
       col.accessor("memo", {
         header: "메모",
         cell: (info) => (

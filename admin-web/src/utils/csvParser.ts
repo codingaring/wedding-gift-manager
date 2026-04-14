@@ -7,6 +7,7 @@ const EXPECTED_HEADERS = [
   "side",
   "amount",
   "paymentMethod",
+  "mealTickets",
   "memo",
   "date",
 ];
@@ -50,6 +51,7 @@ export function parseCsvFile(file: File): Promise<CsvParseResult> {
             amount: parseInt(row.amount, 10) || 0,
             paymentMethod:
               row.paymentMethod === "transfer" ? "transfer" : "cash",
+            mealTickets: parseInt(row.mealTickets, 10) || 0,
             memo: row.memo?.trim() ?? "",
             date: row.date?.trim() ?? new Date().toISOString(),
           });

@@ -5,6 +5,7 @@ export interface Guest {
   side: "groom" | "bride";
   amount: number;
   paymentMethod: "cash" | "transfer";
+  mealTickets: number;
   memo: string;
   date: string;
   source: "csv" | "manual";
