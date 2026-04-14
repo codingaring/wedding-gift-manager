@@ -4,35 +4,62 @@ import StatsPanel from "./components/StatsPanel";
 import Toolbar from "./components/Toolbar";
 import GuestTable from "./components/GuestTable";
 import GuestFormModal from "./components/GuestFormModal";
+import Sidebar from "./components/Sidebar";
 import { useGuestStore } from "./store/guestStore";
+import { downloadExcel } from "./utils/excelExport";
 import type { Guest } from "./types/guest";
 
 function App() {
-  const guestCount = useGuestStore((s) => s.guests.length);
+  const guests = useGuestStore((s) => s.guests);
+  const guestCount = guests.length;
   const [modalGuest, setModalGuest] = useState<Guest | null | undefined>(
     undefined,
   );
-  // undefined = closed, null = add mode, Guest = edit mode
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">축의금 관리자</h1>
-          {guestCount > 0 && (
-            <p className="text-sm text-gray-500 mt-1">
-              총 {guestCount}건 로드됨
-            </p>
-          )}
-        </div>
-      </header>
+    <div className="flex min-h-screen bg-[#fafafa]">
+      <Sidebar />
 
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-        <CsvUploader />
-        <StatsPanel />
-        <Toolbar onAdd={() => setModalGuest(null)} />
-        <GuestTable onEdit={(guest) => setModalGuest(guest)} />
-      </main>
+      <div className="flex-1 ml-60">
+        {/* Header */}
+        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-gray-100 px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-semibold text-gray-900">
+                Dashboard
+              </h1>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {guestCount > 0
+                  ? `총 ${guestCount}건의 축의금 데이터`
+                  : "CSV를 업로드하여 시작하세요"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => downloadExcel(guests)}
+                disabled={guestCount === 0}
+                className="px-3.5 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                엑셀 내보내기
+              </button>
+              <button
+                onClick={() => setModalGuest(null)}
+                className="px-3.5 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                + 수납 추가
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="px-8 py-6 space-y-5">
+          <CsvUploader />
+          <StatsPanel />
+          <Toolbar onAdd={() => setModalGuest(null)} />
+          <GuestTable onEdit={(guest) => setModalGuest(guest)} />
+        </main>
+      </div>
 
       {modalGuest !== undefined && (
         <GuestFormModal

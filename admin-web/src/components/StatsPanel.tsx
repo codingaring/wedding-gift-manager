@@ -17,66 +17,84 @@ export default function StatsPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="전체"
-          count={stats.totalCount}
-          amount={stats.totalAmount}
-          color="blue"
+          label="전체 건수"
+          value={`${stats.totalCount}건`}
+          sub={`${fmt(stats.totalAmount)}원`}
+          accent="indigo"
         />
         <StatCard
           label="신랑 측"
-          count={stats.groomCount}
-          amount={stats.groomAmount}
-          color="sky"
+          value={`${stats.groomCount}건`}
+          sub={`${fmt(stats.groomAmount)}원`}
+          accent="sky"
         />
         <StatCard
           label="신부 측"
-          count={stats.brideCount}
-          amount={stats.brideAmount}
-          color="pink"
+          value={`${stats.brideCount}건`}
+          sub={`${fmt(stats.brideAmount)}원`}
+          accent="pink"
         />
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="text-sm text-gray-500">총 금액</div>
-          <div className="text-2xl font-bold text-gray-900 mt-1">
-            {fmt(stats.totalAmount)}원
-          </div>
-        </div>
+        <StatCard
+          label="총 금액"
+          value={`${fmt(stats.totalAmount)}원`}
+          sub={`평균 ${fmt(Math.round(stats.totalAmount / stats.totalCount))}원`}
+          accent="emerald"
+        />
       </div>
 
       {relationEntries.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm">
           <button
             onClick={() => setShowRelation(!showRelation)}
-            className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            className="w-full flex items-center justify-between px-5 py-3.5 text-sm font-medium text-gray-700 hover:bg-gray-50/50 rounded-xl transition-colors"
           >
-            <span
-              className={`transition-transform ${showRelation ? "rotate-90" : ""}`}
+            <span>관계별 통계</span>
+            <svg
+              className={`w-4 h-4 text-gray-400 transition-transform ${showRelation ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              &#9654;
-            </span>
-            관계별 통계
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
           </button>
           {showRelation && (
-            <div className="mt-3 space-y-2">
-              {relationEntries.map(([rel, data]) => (
-                <div
-                  key={rel}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium text-gray-700 w-20">
+            <div className="px-5 pb-4 space-y-2.5 border-t border-gray-100">
+              <div className="pt-3" />
+              {relationEntries.map(([rel, data]) => {
+                const pct = Math.round(
+                  (data.amount / stats.totalAmount) * 100,
+                );
+                return (
+                  <div key={rel} className="flex items-center gap-3 text-sm">
+                    <span className="w-20 font-medium text-gray-700 truncate">
                       {rel || "미지정"}
                     </span>
-                    <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full text-xs">
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gray-400 rounded-full transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-400 w-8 text-right">
+                      {pct}%
+                    </span>
+                    <span className="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">
                       {data.count}건
                     </span>
+                    <span className="w-24 text-right font-semibold text-gray-800">
+                      {fmt(data.amount)}원
+                    </span>
                   </div>
-                  <span className="font-semibold text-gray-900">
-                    {fmt(data.amount)}원
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -87,28 +105,34 @@ export default function StatsPanel() {
 
 function StatCard({
   label,
-  count,
-  amount,
-  color,
+  value,
+  sub,
+  accent,
 }: {
   label: string;
-  count: number;
-  amount: number;
-  color: string;
+  value: string;
+  sub: string;
+  accent: string;
 }) {
-  const colorMap: Record<string, string> = {
-    blue: "bg-blue-50 border-blue-200",
-    sky: "bg-sky-50 border-sky-200",
-    pink: "bg-pink-50 border-pink-200",
+  const accentMap: Record<string, { border: string; dot: string }> = {
+    indigo: { border: "border-gray-200", dot: "bg-gray-800" },
+    sky: { border: "border-gray-200", dot: "bg-sky-400" },
+    pink: { border: "border-gray-200", dot: "bg-pink-400" },
+    emerald: { border: "border-gray-200", dot: "bg-emerald-400" },
   };
 
+  const a = accentMap[accent] ?? accentMap.indigo;
+
   return (
-    <div
-      className={`rounded-xl shadow-sm border p-4 ${colorMap[color] ?? "bg-white border-gray-200"}`}
-    >
-      <div className="text-sm text-gray-500">{label}</div>
-      <div className="text-xl font-bold text-gray-900 mt-1">{count}건</div>
-      <div className="text-sm text-gray-600 mt-0.5">{fmt(amount)}원</div>
+    <div className={`bg-white rounded-xl border ${a.border} shadow-sm p-5`}>
+      <div className="flex items-center gap-2 mb-3">
+        <div className={`w-2 h-2 rounded-full ${a.dot}`} />
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {label}
+        </span>
+      </div>
+      <div className="text-2xl font-bold text-gray-900">{value}</div>
+      <div className="text-sm text-gray-400 mt-1">{sub}</div>
     </div>
   );
 }

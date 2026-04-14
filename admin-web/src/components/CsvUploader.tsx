@@ -30,7 +30,7 @@ function DropZone({ side, label }: DropZoneProps) {
       }
 
       importCsv(result.guests, side);
-      setStatus(`${result.guests.length}건 업로드됨`);
+      setStatus(`${result.guests.length}건 업로드`);
       if (result.errors.length > 0) {
         setError(`경고: ${result.errors.length}건 건너뜀`);
       }
@@ -58,7 +58,7 @@ function DropZone({ side, label }: DropZoneProps) {
   );
 
   return (
-    <div
+    <label
       onDragOver={(e) => {
         e.preventDefault();
         setDragging(true);
@@ -66,38 +66,45 @@ function DropZone({ side, label }: DropZoneProps) {
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
       className={`
-        flex flex-col items-center justify-center gap-3 p-8
-        border-2 border-dashed rounded-xl cursor-pointer
-        transition-colors
+        flex items-center gap-3 px-4 py-3 cursor-pointer
+        bg-white border border-dashed rounded-lg
+        transition-all duration-150
         ${
           dragging
-            ? "border-blue-500 bg-blue-50"
-            : "border-gray-300 bg-gray-50 hover:border-gray-400"
+            ? "border-gray-400 bg-gray-50"
+            : "border-gray-200 hover:border-gray-300"
         }
       `}
     >
-      <div className="text-lg font-semibold text-gray-700">{label}</div>
-      <div className="text-sm text-gray-500">CSV 파일을 드래그하거나</div>
-      <label className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer">
+      <div className="text-lg">{side === "groom" ? "🤵" : "👰"}</div>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-gray-700">{label}</div>
+        <div className="text-[11px] text-gray-400">
+          {status ? (
+            <span className="text-emerald-600">{status}</span>
+          ) : error ? (
+            <span className="text-red-500">{error}</span>
+          ) : (
+            "드래그 또는 클릭"
+          )}
+        </div>
+      </div>
+      <span className="px-2.5 py-1 text-[11px] font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors">
         파일 선택
-        <input
-          type="file"
-          accept=".csv"
-          onChange={onFileSelect}
-          className="hidden"
-        />
-      </label>
-      {status && (
-        <div className="text-sm text-green-600 font-medium">{status}</div>
-      )}
-      {error && <div className="text-sm text-red-600">{error}</div>}
-    </div>
+      </span>
+      <input
+        type="file"
+        accept=".csv"
+        onChange={onFileSelect}
+        className="hidden"
+      />
+    </label>
   );
 }
 
 export default function CsvUploader() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       <DropZone side="groom" label="신랑 측 CSV" />
       <DropZone side="bride" label="신부 측 CSV" />
     </div>
