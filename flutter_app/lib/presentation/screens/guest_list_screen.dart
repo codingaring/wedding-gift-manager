@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -78,6 +79,11 @@ class _GuestListScreenState extends ConsumerState<GuestListScreen>
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.file_download_outlined),
+            tooltip: 'CSV 내보내기',
+            onPressed: _onExportCsv,
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Row(
@@ -148,6 +154,33 @@ class _GuestListScreenState extends ConsumerState<GuestListScreen>
   String _formatTime(DateTime time) {
     return '${time.hour.toString().padLeft(2, '0')}:'
         '${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _onExportCsv() async {
+    final result = await FilePicker.platform.saveFile(
+      dialogTitle: 'CSV 저장 위치 선택',
+      fileName: 'wedding_gift_${DateTime.now().toIso8601String().split('T').first}.csv',
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+    );
+
+    if (result == null) return; // 사용자 취소
+
+    try {
+      final exportService = ref.read(csvExportServiceProvider);
+      final path = await exportService.exportToCsv(result);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('CSV 내보내기 완료: $path')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('내보내기 실패. 저장 경로를 확인해주세요')),
+        );
+      }
+    }
   }
 
   Future<void> _onAdd() async {
