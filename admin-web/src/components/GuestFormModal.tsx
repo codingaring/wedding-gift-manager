@@ -219,7 +219,7 @@ export default function GuestFormModal({
                         : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
                     }`}
                   >
-                    {n === 0 ? "없음" : `${n}장`}
+                    {n === 0 ? "X" : `${n}장`}
                   </button>
                 ))}
               </div>

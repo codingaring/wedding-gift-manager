@@ -58,7 +58,7 @@ class _GuestFormDialogState extends State<_GuestFormDialog> {
     _customRelationController = TextEditingController();
     _mealTickets = g?.mealTickets ?? 0;
     _mealTicketsController = TextEditingController(
-      text: _mealTickets > 0 ? _mealTickets.toString() : '',
+      text: _mealTickets.toString(),
     );
 
     if (g?.relation != null) {
@@ -223,8 +223,7 @@ class _GuestFormDialogState extends State<_GuestFormDialog> {
                         isSelected: _mealTickets == n,
                         onTap: () {
                           setState(() => _mealTickets = n);
-                          _mealTicketsController.text =
-                              n > 0 ? n.toString() : '';
+                          _mealTicketsController.text = n.toString();
                         },
                       ),
                   ],
@@ -387,7 +386,7 @@ class _MealTicketChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = count == 0 ? '없음' : '$count장';
+    final label = count == 0 ? 'X' : '$count장';
     return Material(
       color: isSelected ? const Color(0xFF2C2C2C) : const Color(0xFFF5F5F5),
       borderRadius: BorderRadius.circular(8),
