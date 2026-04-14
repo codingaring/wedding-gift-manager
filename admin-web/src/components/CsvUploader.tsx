@@ -1,9 +1,9 @@
-import { useCallback, useState } from 'react';
-import { parseCsvFile } from '../utils/csvParser';
-import { useGuestStore } from '../store/guestStore';
+import { useCallback, useState } from "react";
+import { parseCsvFile } from "../utils/csvParser";
+import { useGuestStore } from "../store/guestStore";
 
 interface DropZoneProps {
-  side: 'groom' | 'bride';
+  side: "groom" | "bride";
   label: string;
 }
 
@@ -15,12 +15,12 @@ function DropZone({ side, label }: DropZoneProps) {
 
   const handleFile = useCallback(
     async (file: File) => {
-      if (!file.name.endsWith('.csv')) {
-        setError('CSV 파일만 업로드 가능합니다');
+      if (!file.name.endsWith(".csv")) {
+        setError("CSV 파일만 업로드 가능합니다");
         return;
       }
       setError(null);
-      setStatus('파싱 중...');
+      setStatus("파싱 중...");
 
       const result = await parseCsvFile(file);
       if (result.errors.length > 0 && result.guests.length === 0) {
@@ -35,7 +35,7 @@ function DropZone({ side, label }: DropZoneProps) {
         setError(`경고: ${result.errors.length}건 건너뜀`);
       }
     },
-    [importCsv, side]
+    [importCsv, side],
   );
 
   const onDrop = useCallback(
@@ -45,30 +45,34 @@ function DropZone({ side, label }: DropZoneProps) {
       const file = e.dataTransfer.files[0];
       if (file) handleFile(file);
     },
-    [handleFile]
+    [handleFile],
   );
 
   const onFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) handleFile(file);
-      e.target.value = '';
+      e.target.value = "";
     },
-    [handleFile]
+    [handleFile],
   );
 
   return (
     <div
-      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
       className={`
         flex flex-col items-center justify-center gap-3 p-8
         border-2 border-dashed rounded-xl cursor-pointer
         transition-colors
-        ${dragging
-          ? 'border-blue-500 bg-blue-50'
-          : 'border-gray-300 bg-gray-50 hover:border-gray-400'
+        ${
+          dragging
+            ? "border-blue-500 bg-blue-50"
+            : "border-gray-300 bg-gray-50 hover:border-gray-400"
         }
       `}
     >
@@ -86,9 +90,7 @@ function DropZone({ side, label }: DropZoneProps) {
       {status && (
         <div className="text-sm text-green-600 font-medium">{status}</div>
       )}
-      {error && (
-        <div className="text-sm text-red-600">{error}</div>
-      )}
+      {error && <div className="text-sm text-red-600">{error}</div>}
     </div>
   );
 }

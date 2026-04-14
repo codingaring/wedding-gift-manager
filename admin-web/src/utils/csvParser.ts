@@ -1,10 +1,18 @@
-import Papa from 'papaparse';
-import type { Guest } from '../types/guest';
+import Papa from "papaparse";
+import type { Guest } from "../types/guest";
 
-const EXPECTED_HEADERS = ['name', 'relation', 'side', 'amount', 'paymentMethod', 'memo', 'date'];
+const EXPECTED_HEADERS = [
+  "name",
+  "relation",
+  "side",
+  "amount",
+  "paymentMethod",
+  "memo",
+  "date",
+];
 
 export interface CsvParseResult {
-  guests: Omit<Guest, 'id' | 'source'>[];
+  guests: Omit<Guest, "id" | "source">[];
   errors: string[];
 }
 
@@ -13,7 +21,7 @@ export function parseCsvFile(file: File): Promise<CsvParseResult> {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      encoding: 'UTF-8',
+      encoding: "UTF-8",
       complete: (results) => {
         const errors: string[] = [];
 
@@ -23,12 +31,12 @@ export function parseCsvFile(file: File): Promise<CsvParseResult> {
         if (missing.length > 0) {
           resolve({
             guests: [],
-            errors: [`CSV 헤더 오류: ${missing.join(', ')} 컬럼이 없습니다`],
+            errors: [`CSV 헤더 오류: ${missing.join(", ")} 컬럼이 없습니다`],
           });
           return;
         }
 
-        const guests: Omit<Guest, 'id' | 'source'>[] = [];
+        const guests: Omit<Guest, "id" | "source">[] = [];
         for (let i = 0; i < results.data.length; i++) {
           const row = results.data[i] as Record<string, string>;
           if (!row.name?.trim()) {
@@ -37,11 +45,12 @@ export function parseCsvFile(file: File): Promise<CsvParseResult> {
           }
           guests.push({
             name: row.name.trim(),
-            relation: row.relation?.trim() ?? '',
-            side: (row.side === 'bride' ? 'bride' : 'groom'),
+            relation: row.relation?.trim() ?? "",
+            side: row.side === "bride" ? "bride" : "groom",
             amount: parseInt(row.amount, 10) || 0,
-            paymentMethod: row.paymentMethod === 'transfer' ? 'transfer' : 'cash',
-            memo: row.memo?.trim() ?? '',
+            paymentMethod:
+              row.paymentMethod === "transfer" ? "transfer" : "cash",
+            memo: row.memo?.trim() ?? "",
             date: row.date?.trim() ?? new Date().toISOString(),
           });
         }

@@ -2,12 +2,12 @@ export interface Guest {
   id: string;
   name: string;
   relation: string;
-  side: 'groom' | 'bride';
+  side: "groom" | "bride";
   amount: number;
-  paymentMethod: 'cash' | 'transfer';
+  paymentMethod: "cash" | "transfer";
   memo: string;
   date: string;
-  source: 'csv' | 'manual';
+  source: "csv" | "manual";
 }
 
 export interface GuestStats {
@@ -20,4 +20,4 @@ export interface GuestStats {
   byRelation: Record<string, { count: number; amount: number }>;
 }
 
-export type SideFilter = 'all' | 'groom' | 'bride';
+export type SideFilter = "all" | "groom" | "bride";

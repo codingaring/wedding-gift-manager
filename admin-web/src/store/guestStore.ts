@@ -1,15 +1,18 @@
-import { useMemo } from 'react';
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { Guest, GuestStats, SideFilter } from '../types/guest';
+import { useMemo } from "react";
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { Guest, GuestStats, SideFilter } from "../types/guest";
 
 interface GuestStore {
   guests: Guest[];
   sideFilter: SideFilter;
   searchQuery: string;
 
-  importCsv: (csvGuests: Omit<Guest, 'id' | 'source'>[], side: 'groom' | 'bride') => void;
-  addGuest: (guest: Omit<Guest, 'id' | 'source'>) => void;
+  importCsv: (
+    csvGuests: Omit<Guest, "id" | "source">[],
+    side: "groom" | "bride",
+  ) => void;
+  addGuest: (guest: Omit<Guest, "id" | "source">) => void;
   updateGuest: (id: string, updates: Partial<Guest>) => void;
   deleteGuest: (id: string) => void;
   setSideFilter: (filter: SideFilter) => void;
@@ -21,8 +24,8 @@ export const useGuestStore = create<GuestStore>()(
   persist(
     (set) => ({
       guests: [],
-      sideFilter: 'all',
-      searchQuery: '',
+      sideFilter: "all",
+      searchQuery: "",
 
       importCsv: (csvGuests, side) =>
         set((state) => {
@@ -30,7 +33,7 @@ export const useGuestStore = create<GuestStore>()(
             ...g,
             id: crypto.randomUUID(),
             side,
-            source: 'csv' as const,
+            source: "csv" as const,
           }));
           return { guests: [...state.guests, ...newGuests] };
         }),
@@ -39,14 +42,14 @@ export const useGuestStore = create<GuestStore>()(
         set((state) => ({
           guests: [
             ...state.guests,
-            { ...guest, id: crypto.randomUUID(), source: 'manual' as const },
+            { ...guest, id: crypto.randomUUID(), source: "manual" as const },
           ],
         })),
 
       updateGuest: (id, updates) =>
         set((state) => ({
           guests: state.guests.map((g) =>
-            g.id === id ? { ...g, ...updates } : g
+            g.id === id ? { ...g, ...updates } : g,
           ),
         })),
 
@@ -57,10 +60,10 @@ export const useGuestStore = create<GuestStore>()(
 
       setSideFilter: (filter) => set({ sideFilter: filter }),
       setSearchQuery: (query) => set({ searchQuery: query }),
-      clearAll: () => set({ guests: [], sideFilter: 'all', searchQuery: '' }),
+      clearAll: () => set({ guests: [], sideFilter: "all", searchQuery: "" }),
     }),
-    { name: 'wedding-gift-admin' }
-  )
+    { name: "wedding-gift-admin" },
+  ),
 );
 
 // Selectors — use primitive selectors + useMemo to avoid infinite re-render
@@ -71,7 +74,7 @@ export function useFilteredGuests() {
 
   return useMemo(() => {
     let filtered = guests;
-    if (sideFilter !== 'all') {
+    if (sideFilter !== "all") {
       filtered = filtered.filter((g) => g.side === sideFilter);
     }
     if (searchQuery) {
@@ -87,13 +90,21 @@ export function useGuestStats(): GuestStats {
 
   return useMemo(() => {
     const byRelation: Record<string, { count: number; amount: number }> = {};
-    let groomCount = 0, groomAmount = 0, brideCount = 0, brideAmount = 0;
+    let groomCount = 0,
+      groomAmount = 0,
+      brideCount = 0,
+      brideAmount = 0;
 
     for (const g of guests) {
-      if (g.side === 'groom') { groomCount++; groomAmount += g.amount; }
-      else { brideCount++; brideAmount += g.amount; }
+      if (g.side === "groom") {
+        groomCount++;
+        groomAmount += g.amount;
+      } else {
+        brideCount++;
+        brideAmount += g.amount;
+      }
 
-      const rel = g.relation || '미지정';
+      const rel = g.relation || "미지정";
       if (!byRelation[rel]) byRelation[rel] = { count: 0, amount: 0 };
       byRelation[rel].count++;
       byRelation[rel].amount += g.amount;
@@ -102,8 +113,10 @@ export function useGuestStats(): GuestStats {
     return {
       totalCount: guests.length,
       totalAmount: groomAmount + brideAmount,
-      groomCount, groomAmount,
-      brideCount, brideAmount,
+      groomCount,
+      groomAmount,
+      brideCount,
+      brideAmount,
       byRelation,
     };
   }, [guests]);
