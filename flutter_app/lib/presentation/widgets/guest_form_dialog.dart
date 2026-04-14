@@ -40,6 +40,7 @@ class _GuestFormDialogState extends State<_GuestFormDialog> {
   late final TextEditingController _amountController;
   late final TextEditingController _memoController;
   late final TextEditingController _customRelationController;
+  late final TextEditingController _mealTicketsController;
   GuestRelation? _selectedRelation;
   int _mealTickets = 0;
   final _formKey = GlobalKey<FormState>();
@@ -56,6 +57,9 @@ class _GuestFormDialogState extends State<_GuestFormDialog> {
     _memoController = TextEditingController(text: g?.memo ?? '');
     _customRelationController = TextEditingController();
     _mealTickets = g?.mealTickets ?? 0;
+    _mealTicketsController = TextEditingController(
+      text: _mealTickets > 0 ? _mealTickets.toString() : '',
+    );
 
     if (g?.relation != null) {
       _selectedRelation = GuestRelation.values
@@ -81,6 +85,7 @@ class _GuestFormDialogState extends State<_GuestFormDialog> {
     _amountController.dispose();
     _memoController.dispose();
     _customRelationController.dispose();
+    _mealTicketsController.dispose();
     _nameFocus.dispose();
     super.dispose();
   }
@@ -208,30 +213,38 @@ class _GuestFormDialogState extends State<_GuestFormDialog> {
                 const SizedBox(height: 16),
 
                 // 식권
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
                   children: [
-                    Text(
-                      '식권 수령',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    for (final n in [0, 1, 2, 3, 4, 5])
+                      _MealTicketChip(
+                        count: n,
+                        isSelected: _mealTickets == n,
+                        onTap: () {
+                          setState(() => _mealTickets = n);
+                          _mealTicketsController.text =
+                              n > 0 ? n.toString() : '';
+                        },
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        for (final n in [0, 1, 2, 3, 4, 5])
-                          Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: _MealTicketChip(
-                              count: n,
-                              isSelected: _mealTickets == n,
-                              onTap: () => setState(() => _mealTickets = n),
-                            ),
-                          ),
-                      ],
-                    ),
                   ],
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _mealTicketsController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(
+                    labelText: '식권 수령 (직접 입력)',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                    suffixText: '장',
+                    prefixIcon: Icon(Icons.restaurant_outlined, size: 20),
+                  ),
+                  onChanged: (v) {
+                    final parsed = int.tryParse(v) ?? 0;
+                    setState(() => _mealTickets = parsed);
+                  },
                 ),
                 const SizedBox(height: 16),
 
