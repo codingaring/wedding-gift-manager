@@ -1,4 +1,4 @@
-// 수납 추가/수정 공용 모달 — Flutter 앱에서는 항상 현금 (paymentMethod 숨김)
+// 수납 추가/수정 바텀시트 — shadcn/ui 스타일
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,36 +6,47 @@ import 'package:flutter/services.dart';
 import '../../core/constants.dart';
 import '../../core/utils/number_format.dart';
 import '../../domain/entities/guest.dart';
+import '../../main.dart';
 
 /// 추가 모달
 Future<Map<String, dynamic>?> showAddGuestDialog(BuildContext context) {
-  return showDialog<Map<String, dynamic>>(
+  return showModalBottomSheet<Map<String, dynamic>>(
     context: context,
-    barrierDismissible: false,
-    builder: (context) => const _GuestFormDialog(),
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: AppColors.background,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) => const _GuestFormSheet(),
   );
 }
 
 /// 수정 모달
 Future<Guest?> showEditGuestDialog(BuildContext context, Guest guest) {
-  return showDialog<Guest>(
+  return showModalBottomSheet<Guest>(
     context: context,
-    barrierDismissible: false,
-    builder: (context) => _GuestFormDialog(guest: guest),
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: AppColors.background,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) => _GuestFormSheet(guest: guest),
   );
 }
 
-class _GuestFormDialog extends StatefulWidget {
+class _GuestFormSheet extends StatefulWidget {
   final Guest? guest;
-  const _GuestFormDialog({this.guest});
+  const _GuestFormSheet({this.guest});
 
   bool get isEditing => guest != null;
 
   @override
-  State<_GuestFormDialog> createState() => _GuestFormDialogState();
+  State<_GuestFormSheet> createState() => _GuestFormSheetState();
 }
 
-class _GuestFormDialogState extends State<_GuestFormDialog> {
+class _GuestFormSheetState extends State<_GuestFormSheet> {
   late final TextEditingController _nameController;
   late final TextEditingController _amountController;
   late final TextEditingController _memoController;
@@ -65,7 +76,6 @@ class _GuestFormDialogState extends State<_GuestFormDialog> {
       _selectedRelation = GuestRelation.values
           .cast<GuestRelation?>()
           .firstWhere((r) => r?.label == g!.relation, orElse: () => null);
-      // 기타인 경우 또는 매칭 안 되는 경우 → 기타 + 직접 입력
       if (_selectedRelation == null && g!.relation != null) {
         _selectedRelation = GuestRelation.other;
         _customRelationController.text = g.relation!;
@@ -92,194 +102,249 @@ class _GuestFormDialogState extends State<_GuestFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Dialog(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Form(
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) {
+          return Form(
             key: _formKey,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 헤더
-                Row(
-                  children: [
-                    Icon(
-                      widget.isEditing ? Icons.edit : Icons.person_add,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      widget.isEditing ? '수납 수정' : '수납 추가',
-                      style: theme.textTheme.titleLarge,
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const Divider(height: 24),
-
-                // 이름
-                TextFormField(
-                  controller: _nameController,
-                  focusNode: _nameFocus,
-                  decoration: const InputDecoration(
-                    labelText: '이름 *',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                    prefixIcon: Icon(Icons.person_outline, size: 20),
+                // 드래그 핸들 + 헤더
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
+                  child: Column(
+                    children: [
+                      // 핸들
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.zinc300,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Text(
+                            widget.isEditing ? '수납 수정' : '수납 추가',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.foreground,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 20),
+                            onPressed: () => Navigator.pop(context),
+                            style: IconButton.styleFrom(
+                              backgroundColor: AppColors.zinc100,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? '이름을 입력하세요' : null,
-                  textInputAction: TextInputAction.next,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
+                const Divider(),
 
-                // 금액 빠른 입력 버튼
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final amt in [3, 5, 10, 15, 20, 25, 30])
-                      _AmountChip(
-                        amount: amt * 10000,
-                        isSelected:
-                            parseAmount(_amountController.text) == amt * 10000,
-                        onTap: () {
-                          _amountController.text = formatAmount(amt * 10000);
+                // 폼 본문
+                Expanded(
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                    children: [
+                      // 이름
+                      _FieldLabel('이름'),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _nameController,
+                        focusNode: _nameFocus,
+                        decoration: const InputDecoration(
+                          hintText: '하객 이름 입력',
+                          isDense: true,
+                        ),
+                        validator: (v) =>
+                            (v == null || v.trim().isEmpty) ? '이름을 입력하세요' : null,
+                        textInputAction: TextInputAction.next,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // 금액
+                      _FieldLabel('금액'),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final amt in [3, 5, 10, 15, 20, 25, 30])
+                            _ChipButton(
+                              label: '$amt만',
+                              isSelected: parseAmount(_amountController.text) ==
+                                  amt * 10000,
+                              onTap: () {
+                                _amountController.text =
+                                    formatAmount(amt * 10000);
+                                setState(() {});
+                              },
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _amountController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                        decoration: const InputDecoration(
+                          hintText: '직접 입력',
+                          isDense: true,
+                          suffixText: '원',
+                        ),
+                        onChanged: (_) {
+                          _formatField(_amountController);
                           setState(() {});
                         },
+                        textInputAction: TextInputAction.next,
                       ),
-                  ],
-                ),
-                const SizedBox(height: 10),
+                      const SizedBox(height: 20),
 
-                // 금액 직접 입력
-                TextFormField(
-                  controller: _amountController,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
-                    labelText: '금액 (직접 입력)',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                    suffixText: '원',
-                    prefixIcon: Icon(Icons.payments_outlined, size: 20),
-                  ),
-                  onChanged: (_) {
-                    _formatField(_amountController);
-                    setState(() {});
-                  },
-                  textInputAction: TextInputAction.next,
-                ),
-                const SizedBox(height: 16),
+                      // 관계
+                      _FieldLabel('관계'),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<GuestRelation>(
+                        initialValue: _selectedRelation,
+                        decoration: const InputDecoration(
+                          hintText: '선택',
+                          isDense: true,
+                        ),
+                        isExpanded: true,
+                        items: GuestRelation.values
+                            .map((r) => DropdownMenuItem(
+                                value: r, child: Text(r.label)))
+                            .toList(),
+                        onChanged: (v) =>
+                            setState(() => _selectedRelation = v),
+                      ),
 
-                // 관계
-                DropdownButtonFormField<GuestRelation>(
-                  initialValue: _selectedRelation,
-                  decoration: const InputDecoration(
-                    labelText: '관계',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                    prefixIcon: Icon(Icons.group_outlined, size: 20),
-                  ),
-                  isExpanded: true,
-                  items: GuestRelation.values
-                      .map((r) =>
-                          DropdownMenuItem(value: r, child: Text(r.label)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedRelation = v),
-                ),
+                      if (_selectedRelation == GuestRelation.other) ...[
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _customRelationController,
+                          decoration: const InputDecoration(
+                            hintText: '예: 대학 선배, 이웃',
+                            isDense: true,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
 
-                // 기타 선택 시 직접 입력
-                if (_selectedRelation == GuestRelation.other) ...[
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _customRelationController,
-                    decoration: const InputDecoration(
-                      labelText: '관계 직접 입력',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                      hintText: '예: 대학 선배, 이웃 등',
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 16),
-
-                // 식권
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final n in [0, 1, 2, 3, 4, 5])
-                      _MealTicketChip(
-                        count: n,
-                        isSelected: _mealTickets == n,
-                        onTap: () {
-                          setState(() => _mealTickets = n);
-                          _mealTicketsController.text = n.toString();
+                      // 식권
+                      _FieldLabel('식권'),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final n in [0, 1, 2, 3, 4, 5])
+                            _ChipButton(
+                              label: n == 0 ? 'X' : '$n장',
+                              isSelected: _mealTickets == n,
+                              onTap: () {
+                                setState(() => _mealTickets = n);
+                                _mealTicketsController.text = n.toString();
+                              },
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _mealTicketsController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                        decoration: const InputDecoration(
+                          hintText: '직접 입력',
+                          isDense: true,
+                          suffixText: '장',
+                        ),
+                        onChanged: (v) {
+                          final parsed = int.tryParse(v) ?? 0;
+                          setState(() => _mealTickets = parsed);
                         },
                       ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: _mealTicketsController,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
-                    labelText: '식권 수령 (직접 입력)',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                    suffixText: '장',
-                    prefixIcon: Icon(Icons.restaurant_outlined, size: 20),
-                  ),
-                  onChanged: (v) {
-                    final parsed = int.tryParse(v) ?? 0;
-                    setState(() => _mealTickets = parsed);
-                  },
-                ),
-                const SizedBox(height: 16),
+                      const SizedBox(height: 20),
 
-                // 메모
-                TextFormField(
-                  controller: _memoController,
-                  decoration: const InputDecoration(
-                    labelText: '메모 (선택)',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                    prefixIcon: Icon(Icons.note_outlined, size: 20),
+                      // 메모
+                      _FieldLabel('메모'),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _memoController,
+                        decoration: const InputDecoration(
+                          hintText: '선택 사항',
+                          isDense: true,
+                        ),
+                        onFieldSubmitted: (_) => _onSave(),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
                   ),
-                  onFieldSubmitted: (_) => _onSave(),
                 ),
-                const SizedBox(height: 24),
 
-                // 버튼
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('취소'),
+                // 하단 버튼
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: AppColors.border),
                     ),
-                    const SizedBox(width: 12),
-                    FilledButton.icon(
-                      onPressed: _onSave,
-                      icon: Icon(widget.isEditing ? Icons.check : Icons.add),
-                      label: Text(widget.isEditing ? '수정' : '추가'),
-                    ),
-                  ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 44,
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('취소'),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: SizedBox(
+                          height: 44,
+                          child: FilledButton(
+                            onPressed: _onSave,
+                            child: Text(widget.isEditing ? '수정' : '추가'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -337,71 +402,56 @@ class _GuestFormDialogState extends State<_GuestFormDialog> {
   }
 }
 
-class _AmountChip extends StatelessWidget {
-  final int amount;
-  final bool isSelected;
-  final VoidCallback onTap;
+// ─── 공용 위젯 ───
 
-  const _AmountChip({
-    required this.amount,
-    required this.isSelected,
-    required this.onTap,
-  });
+class _FieldLabel extends StatelessWidget {
+  final String text;
+  const _FieldLabel(this.text);
 
   @override
   Widget build(BuildContext context) {
-    final label = '${amount ~/ 10000}만원';
-    return Material(
-      color: isSelected ? const Color(0xFF2C2C2C) : const Color(0xFFF5F5F5),
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.white : const Color(0xFF444444),
-            ),
-          ),
-        ),
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: AppColors.foreground,
       ),
     );
   }
 }
 
-class _MealTicketChip extends StatelessWidget {
-  final int count;
+class _ChipButton extends StatelessWidget {
+  final String label;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _MealTicketChip({
-    required this.count,
+  const _ChipButton({
+    required this.label,
     required this.isSelected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final label = count == 0 ? 'X' : '$count장';
-    return Material(
-      color: isSelected ? const Color(0xFF2C2C2C) : const Color(0xFFF5F5F5),
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.white : const Color(0xFF444444),
-            ),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.zinc900 : AppColors.background,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isSelected ? AppColors.zinc900 : AppColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: isSelected ? Colors.white : AppColors.foreground,
           ),
         ),
       ),

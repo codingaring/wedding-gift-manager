@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
 import '../../core/utils/number_format.dart';
 import '../../domain/entities/guest.dart';
+import '../../main.dart';
 import '../notifiers/guest_list_notifier.dart';
 import '../providers/providers.dart';
 import '../widgets/guest_form_dialog.dart';
@@ -20,15 +21,14 @@ class GuestListScreen extends ConsumerStatefulWidget {
   ConsumerState<GuestListScreen> createState() => _GuestListScreenState();
 }
 
-class _GuestListScreenState extends ConsumerState<GuestListScreen>
-    with SingleTickerProviderStateMixin {
+class _GuestListScreenState extends ConsumerState<GuestListScreen> {
   final _searchController = TextEditingController();
-  late final TabController _tabController;
+  int _tabIndex = 0;
+  bool _isSearchOpen = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(guestListNotifierProvider.notifier).switchSide(widget.deviceId);
     });
@@ -37,14 +37,12 @@ class _GuestListScreenState extends ConsumerState<GuestListScreen>
   @override
   void dispose() {
     _searchController.dispose();
-    _tabController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(guestListNotifierProvider);
-    final backupService = ref.watch(backupServiceProvider);
     final currentSide = DeviceSide.values.firstWhere(
       (s) => s.id == state.side,
       orElse: () => DeviceSide.groom,
@@ -52,96 +50,87 @@ class _GuestListScreenState extends ConsumerState<GuestListScreen>
     final otherSide = currentSide == DeviceSide.groom
         ? DeviceSide.bride
         : DeviceSide.groom;
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            const Text('축의금 수납'),
-            const SizedBox(width: 8),
-            ActionChip(
-              avatar: Icon(
-                Icons.swap_horiz,
-                size: 16,
-                color: theme.colorScheme.onPrimaryContainer,
-              ),
-              label: Text(
-                '${currentSide.label} 측',
-                style: TextStyle(
-                  color: theme.colorScheme.onPrimaryContainer,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              backgroundColor: theme.colorScheme.primaryContainer,
-              onPressed: () => _onSwitchSide(otherSide),
-            ),
-          ],
-        ),
+        title: const Text('축의금 수납'),
         actions: [
+          // 검색 토글
           IconButton(
-            icon: const Icon(Icons.file_download_outlined),
+            icon: Icon(
+              _isSearchOpen ? Icons.close : Icons.search,
+              size: 20,
+            ),
+            onPressed: () {
+              setState(() {
+                _isSearchOpen = !_isSearchOpen;
+                if (!_isSearchOpen) {
+                  _searchController.clear();
+                  ref.read(guestListNotifierProvider.notifier).search('');
+                }
+              });
+            },
+          ),
+          // 내보내기
+          IconButton(
+            icon: const Icon(Icons.download_rounded, size: 20),
             tooltip: 'CSV 내보내기',
             onPressed: _onExportCsv,
           ),
+          const SizedBox(width: 4),
+          // 측 전환
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.cloud_done_outlined,
-                  size: 16,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  backupService.lastBackupTime != null
-                      ? '백업 ${_formatTime(backupService.lastBackupTime!)}'
-                      : '백업 대기',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+            child: _SideToggle(
+              currentSide: currentSide,
+              onSwitch: () => _onSwitchSide(otherSide),
             ),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(icon: Icon(Icons.list_alt), text: '수납 목록'),
-            Tab(icon: Icon(Icons.bar_chart), text: '통계'),
-          ],
-        ),
       ),
       body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
+          ? const Center(
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Column(
               children: [
-                _ListTab(
-                  state: state,
-                  searchController: _searchController,
-                  onSearch: (v) {
-                    ref.read(guestListNotifierProvider.notifier).search(v);
-                    setState(() {});
-                  },
-                  onClearSearch: () {
-                    _searchController.clear();
-                    ref.read(guestListNotifierProvider.notifier).search('');
-                    setState(() {});
-                  },
-                  onEdit: _onEdit,
-                  onDelete: _onDelete,
+                // 검색 바
+                if (_isSearchOpen)
+                  _SearchBar(
+                    controller: _searchController,
+                    onChanged: (v) {
+                      ref.read(guestListNotifierProvider.notifier).search(v);
+                      setState(() {});
+                    },
+                    onClear: () {
+                      _searchController.clear();
+                      ref.read(guestListNotifierProvider.notifier).search('');
+                      setState(() {});
+                    },
+                  ),
+
+                // 세그먼트 탭
+                _SegmentTab(
+                  selectedIndex: _tabIndex,
+                  totalCount: state.summary.totalCount,
+                  onChanged: (i) => setState(() => _tabIndex = i),
                 ),
-                _StatsTab(state: state),
+
+                // 탭 컨텐츠
+                Expanded(
+                  child: _tabIndex == 0
+                      ? _ListContent(
+                          state: state,
+                          onEdit: _onEdit,
+                          onDelete: _onDelete,
+                        )
+                      : _StatsContent(state: state),
+                ),
               ],
             ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: _onAdd,
-        icon: const Icon(Icons.add),
-        label: const Text('추가'),
+        child: const Icon(Icons.add, size: 24),
       ),
     );
   }
@@ -151,20 +140,16 @@ class _GuestListScreenState extends ConsumerState<GuestListScreen>
     ref.read(guestListNotifierProvider.notifier).switchSide(newSide.id);
   }
 
-  String _formatTime(DateTime time) {
-    return '${time.hour.toString().padLeft(2, '0')}:'
-        '${time.minute.toString().padLeft(2, '0')}';
-  }
-
   Future<void> _onExportCsv() async {
     final result = await FilePicker.platform.saveFile(
       dialogTitle: 'CSV 저장 위치 선택',
-      fileName: 'wedding_gift_${DateTime.now().toIso8601String().split('T').first}.csv',
+      fileName:
+          'wedding_gift_${DateTime.now().toIso8601String().split('T').first}.csv',
       type: FileType.custom,
       allowedExtensions: ['csv'],
     );
 
-    if (result == null) return; // 사용자 취소
+    if (result == null) return;
 
     try {
       final exportService = ref.read(csvExportServiceProvider);
@@ -253,9 +238,9 @@ class _GuestListScreenState extends ConsumerState<GuestListScreen>
     final valid = await ref.read(configRepositoryProvider).verifyPin(pin);
     if (!valid) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('PIN이 일치하지 않습니다')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PIN이 일치하지 않습니다')),
+        );
       }
       return;
     }
@@ -273,7 +258,7 @@ class _GuestListScreenState extends ConsumerState<GuestListScreen>
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
+              backgroundColor: AppColors.destructive,
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('삭제'),
@@ -285,203 +270,445 @@ class _GuestListScreenState extends ConsumerState<GuestListScreen>
     if (confirm == true) {
       ref.read(guestListNotifierProvider.notifier).deleteGuest(guest.id);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('삭제됨')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('삭제됨')),
+        );
       }
     }
   }
 }
 
-// ─────────────────────────────────────────────
-// 탭 1: 수납 목록 (건수만 표시, 금액 합계 숨김)
-// ─────────────────────────────────────────────
+// ─── 측 전환 버튼 ───
 
-class _ListTab extends StatelessWidget {
+class _SideToggle extends StatelessWidget {
+  final DeviceSide currentSide;
+  final VoidCallback onSwitch;
+
+  const _SideToggle({required this.currentSide, required this.onSwitch});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onSwitch,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.zinc900,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${currentSide.label} 측',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.swap_horiz, size: 16, color: Colors.white70),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── 검색 바 ───
+
+class _SearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  const _SearchBar({
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: SizedBox(
+        height: 40,
+        child: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: '이름으로 검색',
+            prefixIcon: const Icon(Icons.search, size: 18, color: AppColors.mutedForeground),
+            suffixIcon: controller.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.close, size: 16),
+                    onPressed: onClear,
+                  )
+                : null,
+            contentPadding: const EdgeInsets.symmetric(vertical: 8),
+            filled: true,
+            fillColor: AppColors.zinc50,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+          ),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── 세그먼트 탭 ───
+
+class _SegmentTab extends StatelessWidget {
+  final int selectedIndex;
+  final int totalCount;
+  final ValueChanged<int> onChanged;
+
+  const _SegmentTab({
+    required this.selectedIndex,
+    required this.totalCount,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Container(
+        height: 36,
+        decoration: BoxDecoration(
+          color: AppColors.muted,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            _buildTab(0, '목록', '$totalCount'),
+            _buildTab(1, '통계', null),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTab(int index, String label, String? badge) {
+    final isSelected = selectedIndex == index;
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: Material(
+          color: isSelected ? AppColors.background : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          elevation: isSelected ? 1 : 0,
+          shadowColor: Colors.black26,
+          child: InkWell(
+            onTap: () => onChanged(index),
+            borderRadius: BorderRadius.circular(6),
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            child: SizedBox(
+              height: double.infinity,
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color: isSelected
+                            ? AppColors.foreground
+                            : AppColors.mutedForeground,
+                      ),
+                    ),
+                    if (badge != null) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.zinc200
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          badge,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: isSelected
+                                ? AppColors.foreground
+                                : AppColors.mutedForeground,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── 목록 컨텐츠 ───
+
+class _ListContent extends StatelessWidget {
   final GuestListState state;
-  final TextEditingController searchController;
-  final ValueChanged<String> onSearch;
-  final VoidCallback onClearSearch;
   final void Function(Guest) onEdit;
   final void Function(Guest) onDelete;
 
-  const _ListTab({
+  const _ListContent({
     required this.state,
-    required this.searchController,
-    required this.onSearch,
-    required this.onClearSearch,
     required this.onEdit,
     required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      children: [
-        // 건수 바 + 검색
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Row(
-            children: [
-              // 건수 뱃지
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '총 ${state.summary.totalCount}건',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+    if (state.filteredGuests.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.zinc100,
+                borderRadius: BorderRadius.circular(14),
               ),
-              const SizedBox(width: 12),
-              // 검색
-              Expanded(
-                child: SizedBox(
-                  height: 38,
-                  child: TextField(
-                    controller: searchController,
-                    decoration: InputDecoration(
-                      hintText: '이름 검색...',
-                      prefixIcon: const Icon(Icons.search, size: 20),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: EdgeInsets.zero,
-                      isDense: true,
-                      suffixIcon: searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, size: 18),
-                              onPressed: onClearSearch,
-                            )
-                          : null,
-                    ),
-                    onChanged: onSearch,
-                  ),
+              child: const Icon(
+                Icons.inbox_outlined,
+                size: 28,
+                color: AppColors.zinc400,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              state.searchQuery.isNotEmpty ? '검색 결과가 없습니다' : '아직 수납 내역이 없습니다',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: AppColors.foreground,
+              ),
+            ),
+            if (state.searchQuery.isEmpty) ...[
+              const SizedBox(height: 4),
+              const Text(
+                '+ 버튼을 눌러 추가해보세요',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.mutedForeground,
                 ),
               ),
             ],
-          ),
+          ],
         ),
-        const SizedBox(height: 8),
+      );
+    }
 
-        // 테이블 헤더
-        Container(
-          color: theme.colorScheme.surfaceContainerHighest,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: const Row(
-            children: [
-              SizedBox(
-                width: 40,
-                child: Text('#', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  '이름',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  '관계',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  '금액',
-                  textAlign: TextAlign.right,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              SizedBox(width: 80),
-            ],
-          ),
-        ),
-
-        // 테이블 바디
-        Expanded(
-          child: state.filteredGuests.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.inbox_outlined,
-                        size: 48,
-                        color: theme.colorScheme.outline,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        state.searchQuery.isNotEmpty
-                            ? '검색 결과가 없습니다'
-                            : '아직 수납 내역이 없습니다',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.outline,
-                        ),
-                      ),
-                      if (state.searchQuery.isEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          '우측 하단 + 버튼으로 추가하세요',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.outline,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: state.filteredGuests.length,
-                  itemBuilder: (context, index) {
-                    final guest = state.filteredGuests[index];
-                    return _GuestRow(
-                      index: index + 1,
-                      guest: guest,
-                      isEven: index.isEven,
-                      onEdit: () => onEdit(guest),
-                      onDelete: () => onDelete(guest),
-                    );
-                  },
-                ),
-        ),
-      ],
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: state.filteredGuests.length,
+      separatorBuilder: (_, _) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final guest = state.filteredGuests[index];
+        return _GuestTile(
+          guest: guest,
+          onEdit: () => onEdit(guest),
+          onDelete: () => onDelete(guest),
+        );
+      },
     );
   }
 }
 
-// ─────────────────────────────────────────────
-// 탭 2: 통계 (금액 합계 — 의도적으로 접근해야 볼 수 있음)
-// ─────────────────────────────────────────────
+// ─── 게스트 타일 ───
 
-class _StatsTab extends StatelessWidget {
-  final GuestListState state;
+class _GuestTile extends StatelessWidget {
+  final Guest guest;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
-  const _StatsTab({required this.state});
+  const _GuestTile({
+    required this.guest,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onEdit,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            // 아바타
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.zinc100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  guest.name.isNotEmpty ? guest.name[0] : '?',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.zinc600,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // 이름 + 관계
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    guest.name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.foreground,
+                    ),
+                  ),
+                  if (guest.relation != null)
+                    Text(
+                      guest.relation!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.mutedForeground,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // 식권
+            if (guest.mealTickets > 0)
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.zinc100,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '식권 ${guest.mealTickets}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.zinc600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+
+            // 금액
+            Text(
+              '${formatAmount(guest.amount)}원',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.foreground,
+                fontFeatures: [FontFeature.tabularFigures()],
+              ),
+            ),
+
+            // 더보기
+            const SizedBox(width: 4),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, size: 18, color: AppColors.zinc400),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              style: const ButtonStyle(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                minimumSize: WidgetStatePropertyAll(Size(32, 32)),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: const BorderSide(color: AppColors.border),
+              ),
+              elevation: 4,
+              onSelected: (v) {
+                if (v == 'edit') onEdit();
+                if (v == 'delete') onDelete();
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  height: 40,
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined, size: 16, color: AppColors.zinc600),
+                      SizedBox(width: 8),
+                      Text('수정', style: TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  height: 40,
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, size: 16,
+                          color: AppColors.destructive),
+                      SizedBox(width: 8),
+                      Text('삭제',
+                          style: TextStyle(
+                              fontSize: 14, color: AppColors.destructive)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── 통계 컨텐츠 ───
+
+class _StatsContent extends StatelessWidget {
+  final GuestListState state;
+
+  const _StatsContent({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
     final summary = state.summary;
 
     if (summary.totalCount == 0) {
-      return Center(
+      return const Center(
         child: Text(
           '수납 내역이 없습니다',
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.outline,
+          style: TextStyle(
+            fontSize: 15,
+            color: AppColors.mutedForeground,
           ),
         ),
       );
@@ -490,27 +717,34 @@ class _StatsTab extends StatelessWidget {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SummaryCard(summary: summary),
           const SizedBox(height: 16),
 
           // 관계별 통계
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '관계별 통계',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '관계별 통계',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.foreground,
                   ),
-                  const SizedBox(height: 12),
-                  ..._buildRelationStats(context),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+                ..._buildRelationStats(),
+              ],
             ),
           ),
         ],
@@ -518,9 +752,7 @@ class _StatsTab extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildRelationStats(BuildContext context) {
-    final theme = Theme.of(context);
-    // 관계별로 그룹핑
+  List<Widget> _buildRelationStats() {
     final Map<String, _RelationStat> stats = {};
     for (final guest in state.guests) {
       final rel = guest.relation ?? '미지정';
@@ -532,151 +764,63 @@ class _StatsTab extends StatelessWidget {
     final sorted = stats.entries.toList()
       ..sort((a, b) => b.value.amount.compareTo(a.value.amount));
 
-    return sorted
-        .map(
-          (e) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 80,
-                  child: Text(
-                    e.key,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${e.value.count}건',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '${formatAmount(e.value.amount)}원',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+    return sorted.map((e) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: AppColors.zinc400,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-        )
-        .toList();
+            const SizedBox(width: 10),
+            Text(
+              e.key,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.foreground,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: AppColors.zinc100,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '${e.value.count}건',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.mutedForeground,
+                ),
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${formatAmount(e.value.amount)}원',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.foreground,
+                fontFeatures: [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
   }
 }
 
 class _RelationStat {
   int count = 0;
   int amount = 0;
-}
-
-// ─────────────────────────────────────────────
-// 테이블 행
-// ─────────────────────────────────────────────
-
-class _GuestRow extends StatelessWidget {
-  final int index;
-  final Guest guest;
-  final bool isEven;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  const _GuestRow({
-    required this.index,
-    required this.guest,
-    required this.isEven,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      color: isEven ? null : theme.colorScheme.surfaceContainerLowest,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 40,
-            child: Text(
-              '$index',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              guest.name,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              guest.relation ?? '-',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              '${formatAmount(guest.amount)}원',
-              textAlign: TextAlign.right,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          SizedBox(
-            width: 80,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    onPressed: onEdit,
-                    padding: EdgeInsets.zero,
-                    tooltip: '수정',
-                  ),
-                ),
-                SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.delete_outline,
-                      size: 18,
-                      color: theme.colorScheme.error,
-                    ),
-                    onPressed: onDelete,
-                    padding: EdgeInsets.zero,
-                    tooltip: '삭제',
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

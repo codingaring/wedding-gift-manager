@@ -22,3 +22,8 @@ export interface GuestStats {
 }
 
 export type SideFilter = "all" | "groom" | "bride";
+
+export interface AmountRange {
+  min: number | null;
+  max: number | null;
+}

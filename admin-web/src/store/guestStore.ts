@@ -1,12 +1,14 @@
 import { useMemo } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Guest, GuestStats, SideFilter } from "../types/guest";
+import type { Guest, GuestStats, SideFilter, AmountRange } from "../types/guest";
 
 interface GuestStore {
   guests: Guest[];
   sideFilter: SideFilter;
   searchQuery: string;
+  relationFilter: string;
+  amountRange: AmountRange;
 
   importCsv: (
     csvGuests: Omit<Guest, "id" | "source">[],
@@ -17,6 +19,9 @@ interface GuestStore {
   deleteGuest: (id: string) => void;
   setSideFilter: (filter: SideFilter) => void;
   setSearchQuery: (query: string) => void;
+  setRelationFilter: (relation: string) => void;
+  setAmountRange: (range: AmountRange) => void;
+  clearFilters: () => void;
   clearAll: () => void;
 }
 
@@ -26,6 +31,8 @@ export const useGuestStore = create<GuestStore>()(
       guests: [],
       sideFilter: "all",
       searchQuery: "",
+      relationFilter: "all",
+      amountRange: { min: null, max: null },
 
       importCsv: (csvGuests, side) =>
         set((state) => {
@@ -60,7 +67,23 @@ export const useGuestStore = create<GuestStore>()(
 
       setSideFilter: (filter) => set({ sideFilter: filter }),
       setSearchQuery: (query) => set({ searchQuery: query }),
-      clearAll: () => set({ guests: [], sideFilter: "all", searchQuery: "" }),
+      setRelationFilter: (relation) => set({ relationFilter: relation }),
+      setAmountRange: (range) => set({ amountRange: range }),
+      clearFilters: () =>
+        set({
+          sideFilter: "all",
+          searchQuery: "",
+          relationFilter: "all",
+          amountRange: { min: null, max: null },
+        }),
+      clearAll: () =>
+        set({
+          guests: [],
+          sideFilter: "all",
+          searchQuery: "",
+          relationFilter: "all",
+          amountRange: { min: null, max: null },
+        }),
     }),
     { name: "wedding-gift-admin" },
   ),
@@ -71,18 +94,40 @@ export function useFilteredGuests() {
   const guests = useGuestStore((s) => s.guests);
   const sideFilter = useGuestStore((s) => s.sideFilter);
   const searchQuery = useGuestStore((s) => s.searchQuery);
+  const relationFilter = useGuestStore((s) => s.relationFilter);
+  const amountRange = useGuestStore((s) => s.amountRange);
 
   return useMemo(() => {
     let filtered = guests;
     if (sideFilter !== "all") {
       filtered = filtered.filter((g) => g.side === sideFilter);
     }
+    if (relationFilter !== "all") {
+      filtered = filtered.filter((g) => (g.relation || "미지정") === relationFilter);
+    }
+    if (amountRange.min !== null) {
+      filtered = filtered.filter((g) => g.amount >= amountRange.min!);
+    }
+    if (amountRange.max !== null) {
+      filtered = filtered.filter((g) => g.amount <= amountRange.max!);
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter((g) => g.name.toLowerCase().includes(q));
     }
     return filtered;
-  }, [guests, sideFilter, searchQuery]);
+  }, [guests, sideFilter, searchQuery, relationFilter, amountRange]);
+}
+
+export function useRelationOptions(): string[] {
+  const guests = useGuestStore((s) => s.guests);
+  return useMemo(() => {
+    const set = new Set<string>();
+    for (const g of guests) {
+      set.add(g.relation || "미지정");
+    }
+    return Array.from(set).sort();
+  }, [guests]);
 }
 
 export function useGuestStats(): GuestStats {
@@ -119,5 +164,26 @@ export function useGuestStats(): GuestStats {
       brideAmount,
       byRelation,
     };
+  }, [guests]);
+}
+
+export function useMealTicketStats() {
+  const guests = useGuestStore((s) => s.guests);
+
+  return useMemo(() => {
+    let totalTickets = 0;
+    let groomTickets = 0;
+    let brideTickets = 0;
+    let guestsWithTickets = 0;
+
+    for (const g of guests) {
+      const t = g.mealTickets || 0;
+      totalTickets += t;
+      if (t > 0) guestsWithTickets++;
+      if (g.side === "groom") groomTickets += t;
+      else brideTickets += t;
+    }
+
+    return { totalTickets, groomTickets, brideTickets, guestsWithTickets };
   }, [guests]);
 }
