@@ -56,6 +56,10 @@ class _GuestFormSheetState extends State<_GuestFormSheet> {
   int _mealTickets = 0;
   final _formKey = GlobalKey<FormState>();
   final _nameFocus = FocusNode();
+  final _amountInputFocus = FocusNode();
+  final _mealTicketsInputFocus = FocusNode();
+  final _memoFocus = FocusNode();
+  final _submitFocus = FocusNode();
 
   @override
   void initState() {
@@ -97,6 +101,10 @@ class _GuestFormSheetState extends State<_GuestFormSheet> {
     _customRelationController.dispose();
     _mealTicketsController.dispose();
     _nameFocus.dispose();
+    _amountInputFocus.dispose();
+    _mealTicketsInputFocus.dispose();
+    _memoFocus.dispose();
+    _submitFocus.dispose();
     super.dispose();
   }
 
@@ -145,13 +153,15 @@ class _GuestFormSheetState extends State<_GuestFormSheet> {
                             ),
                           ),
                           const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.close, size: 20),
-                            onPressed: () => Navigator.pop(context),
-                            style: IconButton.styleFrom(
-                              backgroundColor: AppColors.zinc100,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                          ExcludeFocus(
+                            child: IconButton(
+                              icon: const Icon(Icons.close, size: 20),
+                              onPressed: () => Navigator.pop(context),
+                              style: IconButton.styleFrom(
+                                backgroundColor: AppColors.zinc100,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                             ),
                           ),
@@ -188,26 +198,22 @@ class _GuestFormSheetState extends State<_GuestFormSheet> {
                       // 금액
                       _FieldLabel('금액'),
                       const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          for (final amt in [3, 5, 10, 15, 20, 25, 30])
-                            _ChipButton(
-                              label: '$amt만',
-                              isSelected: parseAmount(_amountController.text) ==
-                                  amt * 10000,
-                              onTap: () {
-                                _amountController.text =
-                                    formatAmount(amt * 10000);
-                                setState(() {});
-                              },
-                            ),
-                        ],
+                      _ChipGroup(
+                        labels: const ['3만', '5만', '10만', '15만', '20만', '25만', '30만'],
+                        selectedIndex: [3, 5, 10, 15, 20, 25, 30].indexWhere(
+                          (amt) => parseAmount(_amountController.text) == amt * 10000,
+                        ),
+                        nextFocus: _amountInputFocus,
+                        onSelected: (i) {
+                          final amt = [3, 5, 10, 15, 20, 25, 30][i];
+                          _amountController.text = formatAmount(amt * 10000);
+                          setState(() {});
+                        },
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _amountController,
+                        focusNode: _amountInputFocus,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly
@@ -228,19 +234,14 @@ class _GuestFormSheetState extends State<_GuestFormSheet> {
                       // 관계
                       _FieldLabel('관계'),
                       const SizedBox(height: 6),
-                      DropdownButtonFormField<GuestRelation>(
-                        initialValue: _selectedRelation,
-                        decoration: const InputDecoration(
-                          hintText: '선택',
-                          isDense: true,
-                        ),
-                        isExpanded: true,
-                        items: GuestRelation.values
-                            .map((r) => DropdownMenuItem(
-                                value: r, child: Text(r.label)))
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() => _selectedRelation = v),
+                      _ChipGroup(
+                        labels: GuestRelation.values.map((r) => r.label).toList(),
+                        selectedIndex: _selectedRelation == null
+                            ? -1
+                            : GuestRelation.values.indexOf(_selectedRelation!),
+                        onSelected: (i) {
+                          setState(() => _selectedRelation = GuestRelation.values[i]);
+                        },
                       ),
 
                       if (_selectedRelation == GuestRelation.other) ...[
@@ -258,24 +259,20 @@ class _GuestFormSheetState extends State<_GuestFormSheet> {
                       // 식권
                       _FieldLabel('식권'),
                       const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          for (final n in [0, 1, 2, 3, 4, 5])
-                            _ChipButton(
-                              label: n == 0 ? 'X' : '$n장',
-                              isSelected: _mealTickets == n,
-                              onTap: () {
-                                setState(() => _mealTickets = n);
-                                _mealTicketsController.text = n.toString();
-                              },
-                            ),
-                        ],
+                      _ChipGroup(
+                        labels: const ['모름', '1장', '2장', '3장', '4장', '5장'],
+                        selectedIndex: [0, 1, 2, 3, 4, 5].indexOf(_mealTickets),
+                        nextFocus: _mealTicketsInputFocus,
+                        onSelected: (i) {
+                          final n = [0, 1, 2, 3, 4, 5][i];
+                          setState(() => _mealTickets = n);
+                          _mealTicketsController.text = n.toString();
+                        },
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _mealTicketsController,
+                        focusNode: _mealTicketsInputFocus,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly
@@ -289,6 +286,7 @@ class _GuestFormSheetState extends State<_GuestFormSheet> {
                           final parsed = int.tryParse(v) ?? 0;
                           setState(() => _mealTickets = parsed);
                         },
+                        textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 20),
 
@@ -297,11 +295,13 @@ class _GuestFormSheetState extends State<_GuestFormSheet> {
                       const SizedBox(height: 6),
                       TextFormField(
                         controller: _memoController,
+                        focusNode: _memoFocus,
                         decoration: const InputDecoration(
                           hintText: '선택 사항',
                           isDense: true,
                         ),
-                        onFieldSubmitted: (_) => _onSave(),
+                        textInputAction: TextInputAction.next,
+                        onFieldSubmitted: (_) => _submitFocus.requestFocus(),
                       ),
                       const SizedBox(height: 32),
                     ],
@@ -321,9 +321,11 @@ class _GuestFormSheetState extends State<_GuestFormSheet> {
                       Expanded(
                         child: SizedBox(
                           height: 44,
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('취소'),
+                          child: ExcludeFocus(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('취소'),
+                            ),
                           ),
                         ),
                       ),
@@ -333,6 +335,7 @@ class _GuestFormSheetState extends State<_GuestFormSheet> {
                         child: SizedBox(
                           height: 44,
                           child: FilledButton(
+                            focusNode: _submitFocus,
                             onPressed: _onSave,
                             child: Text(widget.isEditing ? '수정' : '추가'),
                           ),
@@ -421,39 +424,140 @@ class _FieldLabel extends StatelessWidget {
   }
 }
 
-class _ChipButton extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
+/// 칩 그룹 — 단일 Tab 스톱, 그룹 내 좌우 화살표 이동, Enter/Space 선택
+class _ChipGroup extends StatefulWidget {
+  final List<String> labels;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+  final FocusNode? nextFocus;
 
-  const _ChipButton({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
+  const _ChipGroup({
+    required this.labels,
+    required this.selectedIndex,
+    required this.onSelected,
+    this.nextFocus,
   });
 
   @override
+  State<_ChipGroup> createState() => _ChipGroupState();
+}
+
+class _ChipGroupState extends State<_ChipGroup> {
+  final _groupFocus = FocusNode();
+  int _focusedIndex = 0;
+  bool _hasFocus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusedIndex = widget.selectedIndex >= 0 ? widget.selectedIndex : 0;
+  }
+
+  @override
+  void didUpdateWidget(covariant _ChipGroup oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedIndex >= 0) {
+      _focusedIndex = widget.selectedIndex;
+    }
+  }
+
+  @override
+  void dispose() {
+    _groupFocus.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    final key = event.logicalKey;
+
+    if (key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.arrowDown) {
+      setState(() {
+        _focusedIndex = (_focusedIndex + 1) % widget.labels.length;
+      });
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowUp) {
+      setState(() {
+        _focusedIndex =
+            (_focusedIndex - 1 + widget.labels.length) % widget.labels.length;
+      });
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) {
+      widget.onSelected(_focusedIndex);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.tab) {
+      if (widget.nextFocus != null) {
+        widget.nextFocus!.requestFocus();
+        return KeyEventResult.handled;
+      }
+      // Tab 기본 동작 — 다음 포커스로 이동
+      return KeyEventResult.ignored;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.zinc900 : AppColors.background,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isSelected ? AppColors.zinc900 : AppColors.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: isSelected ? Colors.white : AppColors.foreground,
-          ),
-        ),
+    return Focus(
+      focusNode: _groupFocus,
+      onFocusChange: (focused) => setState(() => _hasFocus = focused),
+      onKeyEvent: _handleKey,
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          for (int i = 0; i < widget.labels.length; i++)
+            GestureDetector(
+              onTap: () => widget.onSelected(i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: widget.selectedIndex == i
+                      ? AppColors.zinc900
+                      : AppColors.background,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: widget.selectedIndex == i
+                        ? AppColors.zinc900
+                        : (_hasFocus && _focusedIndex == i)
+                            ? AppColors.zinc600
+                            : AppColors.border,
+                    width: (_hasFocus && _focusedIndex == i &&
+                            widget.selectedIndex != i)
+                        ? 2
+                        : 1,
+                  ),
+                  boxShadow: (_hasFocus && _focusedIndex == i)
+                      ? [
+                          BoxShadow(
+                            color: AppColors.zinc900.withValues(alpha: 0.15),
+                            blurRadius: 0,
+                            spreadRadius: 2,
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Text(
+                  widget.labels[i],
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: widget.selectedIndex == i
+                        ? Colors.white
+                        : AppColors.foreground,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

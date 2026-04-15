@@ -178,27 +178,6 @@ class _GuestListScreenState extends ConsumerState<GuestListScreen> {
     final localId = await repo.getNextLocalId(currentSide);
     final amount = result['amount'] as int;
 
-    if (amount == 0 && mounted) {
-      final proceed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('금액 확인'),
-          content: const Text('금액이 0원입니다. 저장하시겠습니까?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('취소'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('저장'),
-            ),
-          ],
-        ),
-      );
-      if (proceed != true) return;
-    }
-
     final guest = Guest(
       id: 0,
       deviceId: currentSide,
@@ -594,14 +573,16 @@ class _GuestTile extends StatelessWidget {
                       color: AppColors.foreground,
                     ),
                   ),
-                  if (guest.relation != null)
-                    Text(
-                      guest.relation!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.mutedForeground,
-                      ),
+                  Text(
+                    [
+                      if (guest.relation != null) guest.relation!,
+                      '${guest.createdAt.hour.toString().padLeft(2, '0')}:${guest.createdAt.minute.toString().padLeft(2, '0')}',
+                    ].join(' · '),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.mutedForeground,
                     ),
+                  ),
                 ],
               ),
             ),
@@ -628,12 +609,16 @@ class _GuestTile extends StatelessWidget {
 
             // 금액
             Text(
-              '${formatAmount(guest.amount)}원',
-              style: const TextStyle(
+              guest.amount == 0
+                  ? '미기입'
+                  : '${formatAmount(guest.amount)}원',
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.foreground,
-                fontFeatures: [FontFeature.tabularFigures()],
+                color: guest.amount == 0
+                    ? AppColors.mutedForeground
+                    : AppColors.foreground,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
 
