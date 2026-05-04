@@ -17,16 +17,39 @@ export interface CsvParseResult {
   errors: string[];
 }
 
-export function parseCsvFile(file: File): Promise<CsvParseResult> {
+async function decodeFile(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+
+  // UTF-8 strict decode — throws on invalid byte sequences
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+  } catch {
+    // fallthrough to EUC-KR
+  }
+
+  // EUC-KR fallback (common encoding for Korean files exported from Excel/Windows)
+  try {
+    return new TextDecoder("euc-kr").decode(buffer);
+  } catch {
+    throw new Error("인코딩 오류. UTF-8 또는 EUC-KR 파일을 사용해주세요");
+  }
+}
+
+export async function parseCsvFile(file: File): Promise<CsvParseResult> {
+  let text: string;
+  try {
+    text = await decodeFile(file);
+  } catch (e) {
+    return { guests: [], errors: [(e as Error).message] };
+  }
+
   return new Promise((resolve) => {
-    Papa.parse(file, {
+    Papa.parse(text, {
       header: true,
       skipEmptyLines: true,
-      encoding: "UTF-8",
       complete: (results) => {
         const errors: string[] = [];
 
-        // Validate headers
         const headers = results.meta.fields ?? [];
         const missing = EXPECTED_HEADERS.filter((h) => !headers.includes(h));
         if (missing.length > 0) {

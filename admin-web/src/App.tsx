@@ -1,5 +1,6 @@
 import { useState } from "react";
 import CsvUploader from "./components/CsvUploader";
+import StatsPanel from "./components/StatsPanel";
 import StatsPage from "./components/StatsPage";
 import BudgetPage from "./components/BudgetPage";
 import Toolbar from "./components/Toolbar";
@@ -8,6 +9,7 @@ import GuestFormModal from "./components/GuestFormModal";
 import Sidebar, { type Page } from "./components/Sidebar";
 import { useGuestStore } from "./store/guestStore";
 import { downloadExcel } from "./utils/excelExport";
+import { downloadCsv } from "./utils/csvExport";
 import type { Guest } from "./types/guest";
 
 function App() {
@@ -47,6 +49,13 @@ function App() {
             {currentPage === "dashboard" && (
               <div className="flex items-center gap-2">
                 <button
+                  onClick={() => downloadCsv(guests)}
+                  disabled={guestCount === 0}
+                  className="px-3.5 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  CSV 내보내기
+                </button>
+                <button
                   onClick={() => downloadExcel(guests)}
                   disabled={guestCount === 0}
                   className="px-3.5 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
@@ -69,7 +78,8 @@ function App() {
           {currentPage === "dashboard" ? (
             <>
               <CsvUploader />
-              <Toolbar onAdd={() => setModalGuest(null)} />
+              <StatsPanel />
+              <Toolbar />
               <GuestTable onEdit={(guest) => setModalGuest(guest)} />
             </>
           ) : currentPage === "stats" ? (

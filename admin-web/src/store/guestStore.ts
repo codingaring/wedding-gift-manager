@@ -13,6 +13,7 @@ interface GuestStore {
   importCsv: (
     csvGuests: Omit<Guest, "id" | "source">[],
     side: "groom" | "bride",
+    mode?: "append" | "replace",
   ) => void;
   addGuest: (guest: Omit<Guest, "id" | "source">) => void;
   updateGuest: (id: string, updates: Partial<Guest>) => void;
@@ -34,7 +35,7 @@ export const useGuestStore = create<GuestStore>()(
       relationFilter: "all",
       amountRange: { min: null, max: null },
 
-      importCsv: (csvGuests, side) =>
+      importCsv: (csvGuests, side, mode = "append") =>
         set((state) => {
           const newGuests: Guest[] = csvGuests.map((g) => ({
             ...g,
@@ -42,7 +43,11 @@ export const useGuestStore = create<GuestStore>()(
             side,
             source: "csv" as const,
           }));
-          return { guests: [...state.guests, ...newGuests] };
+          const base =
+            mode === "replace"
+              ? state.guests.filter((g) => g.side !== side)
+              : state.guests;
+          return { guests: [...base, ...newGuests] };
         }),
 
       addGuest: (guest) =>

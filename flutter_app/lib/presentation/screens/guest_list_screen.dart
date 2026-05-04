@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants.dart';
@@ -25,6 +26,7 @@ class _GuestListScreenState extends ConsumerState<GuestListScreen> {
   final _searchController = TextEditingController();
   int _tabIndex = 0;
   bool _isSearchOpen = false;
+  DateTime? _lastSpaceTime;
 
   @override
   void initState() {
@@ -51,7 +53,10 @@ class _GuestListScreenState extends ConsumerState<GuestListScreen> {
         ? DeviceSide.bride
         : DeviceSide.groom;
 
-    return Scaffold(
+    return Focus(
+      autofocus: true,
+      onKeyEvent: _handleKeyEvent,
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('축의금 수납'),
         actions: [
@@ -132,7 +137,25 @@ class _GuestListScreenState extends ConsumerState<GuestListScreen> {
         onPressed: _onAdd,
         child: const Icon(Icons.add, size: 24),
       ),
+    ),
     );
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey != LogicalKeyboardKey.space) return KeyEventResult.ignored;
+    if (_isSearchOpen) return KeyEventResult.ignored;
+    if (!(ModalRoute.of(context)?.isCurrent ?? false)) return KeyEventResult.ignored;
+
+    final now = DateTime.now();
+    if (_lastSpaceTime != null &&
+        now.difference(_lastSpaceTime!) < const Duration(milliseconds: 500)) {
+      _lastSpaceTime = null;
+      _onAdd();
+      return KeyEventResult.handled;
+    }
+    _lastSpaceTime = now;
+    return KeyEventResult.handled;
   }
 
   void _onSwitchSide(DeviceSide newSide) {

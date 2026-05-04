@@ -2,10 +2,6 @@ import { useState } from "react";
 import { useGuestStore, useRelationOptions } from "../store/guestStore";
 import type { SideFilter } from "../types/guest";
 
-interface ToolbarProps {
-  onAdd: () => void;
-}
-
 const SIDE_OPTIONS: { value: SideFilter; label: string }[] = [
   { value: "all", label: "전체" },
   { value: "groom", label: "신랑" },
@@ -21,7 +17,7 @@ const AMOUNT_PRESETS = [
   { label: "30만~", min: 300000, max: null },
 ] as const;
 
-export default function Toolbar({ onAdd: _onAdd }: ToolbarProps) {
+export default function Toolbar() {
   const {
     sideFilter,
     searchQuery,
